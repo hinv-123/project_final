@@ -13,7 +13,14 @@
         "button.h": "c",
         "test.h": "c",
         "esp_timer.h": "c",
-        "gpio.h": "c"
+        "gpio.h": "c",
+        "led.h": "c",
+        "chrono": "c",
+        "algorithm": "c",
+        "test_blink.h": "c",
+        "blink.h": "c",
+        "freertos.h": "c",
+        "stdio.h": "c"
     },
     "idf.flashType": "UART",
     "idf.portWin": "COM12"
