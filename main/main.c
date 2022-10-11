@@ -1,76 +1,44 @@
 
-// #include "esp_timer.h"
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_system.h"
 #include "driver/gpio.h"
-//#include "Ds1302.h"
-#include "blink.h"
+#include "freertos/semphr.h"
+#include "driver/timer.h"
 #include "ble.h"
 
+#define ESP_INTR_FLAG_DEFAULT 0
 #define BLINK_GPIO 2
-#define LDR 12
-#define Button 13
+#define BUTTON_PIN 0
 
+static bool led_status = true;
+TaskHandle_t ISR = NULL;
 
-Ds1302 rtc(15,14,16);
-uint32_t count = 0;
-volatile uint8_t led_status =0;
+void IRAM_ATTR button_isr_handler (void* arg) {
+    xTaskResumeFromISR(ISR);
+}
+void button_task (void* arg) {
+    gpio_pad_select_gpio(BUTTON_PIN);
+    gpio_set_direction(BUTTON_PIN,GPIO_MODE_INPUT);
 
-void IRAM_ATTK gpio_handler(void *pvParameter)
-{
+    gpio_set_intr_type(BUTTON_PIN, GPIO_INTR_NEGEDGE);
+    gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT); 
+
+    gpio_isr_handler_add(BUTTON_PIN, button_isr_handler, NULL);
+    
     while(1) {
-        printf("Button pressed/n");
-        if(led_status == 0) 
-        {      
-            led_status = 1;
-        } 
-        else if (led_status == 1)
-        { 
-            led_status = 0;
-        }
-    }
-}
-
-void LED_LDR(void *pvParameter)
-{
-	int LightLevel = analogRead(LDR);
-	while(1)
-	{
-	    if(LightLevel <= 500) 
-        {      
-            led_status = 1;
-        } 
-        else 
-        { 
-            led_status = 0;
-        }
-	}
-}
-
-
-void RTC(void *pvParameter)
-{    
-    rtc.begin();
-    rtc.adjust(DateTime(__DATE__, __TIME__));
-    while (1)
-    {
-        DateTime t = rtc.now();
-        if(rtc.sec>0&&rtc.min==0&&rtc.hour==12)
-        {
-            led_state = 1;
-        } 
-        else
-        {
-            led_state = 0;
-        }
+        vTaskSuspend(NULL);
+        led_status = !led_status;
+        gpio_set_level(BLINK_GPIO, led_status);
+        printf("Button pressed \n");
     }
 }
 
 void app_main()
-{
-    xTaskCreate(&LED_LDR, "LDR", 2048, NULL, 5, NULL); // prority esp: button đọc từ ngắt -> freeRTOS ISR
-	xTaskCreate(&RTC, "rtc", 2048,NULL,5,NULL );
-    gpio_isr_handler_add(BLINK_GPIO, gpio_handler, (void*) BLINK_GPIO);
+{ 
+    gpio_pad_select_gpio(BLINK_GPIO);
+    gpio_set_direction(BLINK_GPIO,GPIO_MODE_OUTPUT);
+
+    xTaskCreate(button_task,"button", 2048, NULL, 10, NULL);
 }
