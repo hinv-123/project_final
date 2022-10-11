@@ -12,7 +12,7 @@
 #define BLINK_GPIO 2
 #define BUTTON_PIN 0
 
-static bool led_status = true;
+static bool led_status = false;
 TaskHandle_t ISR = NULL;
 
 void IRAM_ATTR button_isr_handler (void* arg) {
@@ -40,5 +40,5 @@ void app_main()
     gpio_pad_select_gpio(BLINK_GPIO);
     gpio_set_direction(BLINK_GPIO,GPIO_MODE_OUTPUT);
 
-    xTaskCreate(button_task,"button", 2048, NULL, 10, NULL);
+    xTaskCreate(button_task,"button", 2048, NULL, 10, &ISR);
 }
